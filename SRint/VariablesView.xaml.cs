@@ -28,7 +28,7 @@ namespace SRint
             commands = new Dictionary<string, Command>() {
                 { "help", new ShowHelpCommand() },
                 { "create", new CreateVariableCommand(api) },
-                //{ "free", new FreeVariableCommand(api) },
+                { "free", new DeleteVariableCommand(api) },
                 { "list", new ShowVariablesCommand(api) },
                 { "set", new SetVariableCommand(api) },
                 { "get", new GetVariableCommand(api) }

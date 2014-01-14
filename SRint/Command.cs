@@ -59,6 +59,25 @@ namespace SRint
         private ISRint api;
     }
 
+    class DeleteVariableCommand : Command
+    {
+        public DeleteVariableCommand(ISRint api)
+        {
+            this.api = api;
+        }
+
+        public string Execute(string[] arguments)
+        {
+            if (arguments.Length < 1)
+                throw new InvalidCommandException();
+
+            api.dhFree(arguments[0]);
+            return "Variable '" + arguments[0] + "' marked for removal.";
+        }
+
+        private ISRint api;
+    }
+
     class SetVariableCommand : Command
     {
         public SetVariableCommand(ISRint api)

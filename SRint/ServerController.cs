@@ -71,7 +71,10 @@ namespace SRint
 
         private void DeleteVariable(SRintAPI.Command command)
         {
-            // TODO implement this
+            var v = snapshot.variables.Find((variable) => variable.name == command.name);
+            v.owners.RemoveAll((owner) => { return (owner.ip == settings.address && owner.port == settings.port); }); // TODO take under consideration node_id
+            if (v.owners.Count == 0)
+                snapshot.variables.Remove(v);
         }
 
         private void SetValue(SRintAPI.Command command)
