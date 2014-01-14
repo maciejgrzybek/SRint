@@ -47,11 +47,6 @@ namespace SRint
             {
                 context = new ZMQ.Context(poolSize);
 
-                listenSocket = context.Socket(ZMQ.SocketType.PULL);
-                BindToListenSocket(address, recvPort + 1);
-                listener = new ReceivingThread(listenMessagesCollection, listenSocket);
-                listeningThread = new Thread(listener.StartReading);
-
                 recvSocket = context.Socket(ZMQ.SocketType.PULL);
                 BindToRecvSocket(address, recvPort);
                 receiver = new ReceivingThread(recvMessagesCollection, recvSocket);
@@ -68,27 +63,19 @@ namespace SRint
 
             public void StartSocketPolling()
             {
-                listeningThread.Start();
                 receivingThread.Start();
             }
 
             public void StopSocketPolling()
             {
-                listener.StopReading();
                 receiver.StopReading();
-                listeningThread.Join();
                 receivingThread.Join();
-                listeningThread = new Thread(listener.StartReading);
                 receivingThread = new Thread(receiver.StartReading);
             }
 
             public void OperateOnce()
-            {
-                byte[] listenMessage = ReadNextListenMessage();
+            {            
                 byte[] recvMessage = ReadNextRecvMessage();
-
-                if (listenMessage != null)
-                    NotifyMessageObservers(listenMessage, MessageType.Listen);
 
                 if (recvMessage != null)
                     NotifyMessageObservers(recvMessage, MessageType.Recv);
@@ -104,30 +91,9 @@ namespace SRint
                 return message;
             }
 
-            public byte[] ReadNextListenMessage()
-            {
-                byte[] message;
-                bool isAnyMessageInQueue = listenMessagesCollection.TryTake(out message, 200); // TODO parametrize timeout
-                if (!isAnyMessageInQueue)
-                    return null;
-
-                return message;
-            }
-
-            public void RegisterIncommingMessageObserver(IncommingMessageObserver observer)
-            {
-                incommingMessageObserverList.Add(observer);
-            }
-
             private void NotifyMessageObservers(byte[] message, MessageType type)
             {
                 incommingMessageObserverList.ForEach(observer => observer.OnIncommingMessage(message, type));
-            }
-
-            private void BindToListenSocket(string addr, int port)
-            {
-                string address = "tcp://" + addr + ":" + port.ToString();
-                listenSocket.Bind(address);
             }
 
             private void BindToRecvSocket(string addr, int port)
@@ -138,15 +104,11 @@ namespace SRint
 
             private List<IncommingMessageObserver> incommingMessageObserverList = new List<IncommingMessageObserver>();
             private ZMQ.Context context;
-            private ZMQ.Socket listenSocket;
             private ZMQ.Socket recvSocket;
             private ZMQ.Socket sendSocket;
 
-            private BlockingCollection<byte[]> listenMessagesCollection = new BlockingCollection<byte[]>();
             private BlockingCollection<byte[]> recvMessagesCollection = new BlockingCollection<byte[]>();
 
-            private ReceivingThread listener;
-            private Thread listeningThread;
             private ReceivingThread receiver;
             private Thread receivingThread;
         }
