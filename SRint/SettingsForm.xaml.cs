@@ -27,12 +27,7 @@ namespace SRint
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            settings = new Settings { address = ipAddress.Text, port = Convert.ToInt32(port.Text) };
-            if (OnSettingsChanged != null)
-            {
-                OnSettingsChanged(this, settings);
-            }
-            this.Close();
+            AcceptForm();
         }
 
         public Settings settings;
@@ -41,6 +36,16 @@ namespace SRint
         {
             public string address;
             public int port;
+        }
+
+        private void AcceptForm()
+        {
+            settings = new Settings { address = ipAddress.Text, port = Convert.ToInt32(port.Text) };
+            if (OnSettingsChanged != null)
+            {
+                OnSettingsChanged(this, settings);
+            }
+            this.Close();
         }
     }
 }
