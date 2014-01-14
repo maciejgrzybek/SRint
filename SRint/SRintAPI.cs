@@ -73,7 +73,7 @@ namespace SRint
         }
         public void dhSetCallback(string name, OnConcreteVariableValueChanged callback)
         {
-            callbacks[name].Add(callback);
+            callbacks.Add(name, new List<OnConcreteVariableValueChanged> { callback });
         }
         public List<protobuf.Message.Variable> getVariables()
         {
@@ -85,8 +85,9 @@ namespace SRint
             if (OnVariableValueChanged != null)
             {
                 OnVariableValueChanged(this, change);
-                callbacks[change.VariableName].ForEach(callback => callback(change.VariableName, change.OldValue));
             }
+            if (callbacks.ContainsKey(change.VariableName))
+                callbacks[change.VariableName].ForEach(callback => callback(change.VariableName, change.OldValue));
         }
 
         private protobuf.Message.Variable getVariable(string name)
