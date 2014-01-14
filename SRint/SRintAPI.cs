@@ -51,7 +51,6 @@ namespace SRint
         public void dhCreate(string name)
         {
             commandsQueue.TryAdd(new CreateVariableCommand  { name = name }, 0);
-            lastSnapshot.variables.Add(new protobuf.Message.Variable { name = name, value = 0 });
         }
         public void dhFree(string name)
         {
@@ -68,8 +67,6 @@ namespace SRint
         public void dhSet(string name, long value)
         {
             commandsQueue.TryAdd(new SetValueCommand { name = name, value = value }, 0);
-            var v = lastSnapshot.variables.Find((variable) => variable.name == name);
-            v.value = value;
         }
         public void dhSetCallback(string name, OnConcreteVariableValueChanged callback)
         {
