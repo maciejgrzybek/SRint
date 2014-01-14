@@ -20,7 +20,7 @@ namespace SRint
     /// </summary>
     public partial class LogPage : Page
     {
-        public LogPage(MainWindow parent)
+        public LogPage()
         {
             InitializeComponent();
             Logger.Instance.OnErrorOccured += OnErrorOccured;

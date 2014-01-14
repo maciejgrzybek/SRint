@@ -27,7 +27,7 @@ namespace SRint
             api = new SRintAPI(commandsQueue);
             pages = new Dictionary<string,Page>()
             {
-                { "ShowLogPage_Button", new LogPage(this) },
+                { "ShowLogPage_Button", new LogPage() },
                 { "ShowVariablesView_Button", new VariablesView(api) }
             };
             frame.NavigationService.Navigate(pages["ShowLogPage_Button"]);
