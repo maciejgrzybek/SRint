@@ -15,7 +15,7 @@ namespace SRint
         {
             class ReceivingThread
             {
-                public ReceivingThread(BlockingCollection<string> messagesCollection, ZMQ.Socket socket)
+                public ReceivingThread(BlockingCollection<byte[]> messagesCollection, ZMQ.Socket socket)
                 {
                     this.socket = socket;
                     this.messagesCollection = messagesCollection;
@@ -28,8 +28,8 @@ namespace SRint
                     while (workIndicator)
                     {
                         var received = socket.Recv(2000); // TODO parametrize timeout
-                        if (received != null)
-                            messagesCollection.Add(Encoding.ASCII.GetString(received));
+                        if (received != null && received.Length > 0)
+                            messagesCollection.Add(received);
                     }
                 }
 
@@ -39,7 +39,7 @@ namespace SRint
                 }
 
                 private ZMQ.Socket socket;
-                private BlockingCollection<string> messagesCollection;
+                private BlockingCollection<byte[]> messagesCollection;
                 private volatile bool workIndicator = false;
             }
 
@@ -60,11 +60,31 @@ namespace SRint
                 sendSocket = context.Socket(ZMQ.SocketType.PUSH);
                 //sendSocket.Connect("tcp://192.168.43.72:5555");
                 sendSocket.Connect("tcp://169.254.26.129:5555");
+
+                // FIXME remove everything below
+
+                protobuf.Message.State state = new protobuf.Message.State { state_id = 15 };
+                state.nodes.Add(new protobuf.Message.NodeDescription { node_id = 31, ip = "127.0.0.1", port = 5555 });
+
+                protobuf.Message.Variable v = new protobuf.Message.Variable { name = "dupa", value = 72 };
+                v.owners.Add(new protobuf.Message.NodeDescription { node_id = 31, ip = "127.0.0.1", port = 5555 });
+                state.variables.Add(v);
+
+                protobuf.Message m = new protobuf.Message { type = protobuf.Message.MessageType.STATE, state_content = state };
+                var arr = Serialization.MessageSerializer.Serialize(m);
+
+                protobuf.Message ms = Serialization.MessageSerializer.Deserialize(arr);
+
+                //SendMessage(arr);
             }
 
-            public void SendMessage(string message)
+            public void SendMessage(byte[] message)
             {
-                sendSocket.Send(message, Encoding.ASCII);
+                sendSocket.Send(message);
+            }
+            //public void SendMessage(string message)
+            //{
+             //   sendSocket.Send(message, Encoding.ASCII);
                 //var recv = sendSocket.Recv(2000);
                 //if (recv != null)
                 //{
@@ -74,7 +94,7 @@ namespace SRint
                 //}
                 //else
                 //    Logger.Instance.LogError("recv = null");
-            }
+            //}
 
             public void StartSocketPolling()
             {
@@ -94,8 +114,8 @@ namespace SRint
 
             public void OperateOnce()
             {
-                string listenMessage = ReadNextListenMessage();
-                string recvMessage = ReadNextRecvMessage();
+                byte[] listenMessage = ReadNextListenMessage();
+                byte[] recvMessage = ReadNextRecvMessage();
 
                 if (listenMessage != null)
                     NotifyMessageObservers(listenMessage, MessageType.Listen);
@@ -104,9 +124,9 @@ namespace SRint
                     NotifyMessageObservers(recvMessage, MessageType.Recv);
             }
 
-            public string ReadNextRecvMessage()
+            public byte[] ReadNextRecvMessage()
             {
-                string message;
+                byte[] message;
                 bool isAnyMessageInQueue = recvMessagesCollection.TryTake(out message, 1000); // TODO parametrize timeout
                 if (!isAnyMessageInQueue)
                     return null;
@@ -114,9 +134,9 @@ namespace SRint
                 return message;
             }
 
-            public string ReadNextListenMessage()
+            public byte[] ReadNextListenMessage()
             {
-                string message;
+                byte[] message;
                 bool isAnyMessageInQueue = listenMessagesCollection.TryTake(out message, 200); // TODO parametrize timeout
                 if (!isAnyMessageInQueue)
                     return null;
@@ -129,7 +149,7 @@ namespace SRint
                 incommingMessageObserverList.Add(observer);
             }
 
-            private void NotifyMessageObservers(string message, MessageType type)
+            private void NotifyMessageObservers(byte[] message, MessageType type)
             {
                 //foreach(var observer in incommingMessageObserverList)
                 //{
@@ -156,8 +176,8 @@ namespace SRint
             private ZMQ.Socket recvSocket;
             private ZMQ.Socket sendSocket;
 
-            private BlockingCollection<string> listenMessagesCollection = new BlockingCollection<string>();
-            private BlockingCollection<string> recvMessagesCollection = new BlockingCollection<string>();
+            private BlockingCollection<byte[]> listenMessagesCollection = new BlockingCollection<byte[]>();
+            private BlockingCollection<byte[]> recvMessagesCollection = new BlockingCollection<byte[]>();
 
             private ReceivingThread listener;
             private Thread listeningThread;

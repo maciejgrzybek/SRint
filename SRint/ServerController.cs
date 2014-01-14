@@ -14,16 +14,16 @@ namespace SRint
         {
             this.settings = settings;
             this.commandsQueue = commandsQueue;
-            commandsReactions = new Dictionary<SRintAPI.Command, Action<SRintAPI.Command>>
+            commandsReactions = new Dictionary<Type, Action<SRintAPI.Command>>
             {
-                { new SRintAPI.CreateVariableCommand(), CreateVariable },
-                { new SRintAPI.DeleteVariableCommand(), DeleteVariable },
-                { new SRintAPI.SetValueCommand(), SetValue }
+                { typeof(SRintAPI.CreateVariableCommand), CreateVariable },
+                { typeof(SRintAPI.DeleteVariableCommand), DeleteVariable },
+                { typeof(SRintAPI.SetValueCommand), SetValue }
             };
             this.sender = sender;
         }
 
-        public void OnIncommingMessage(string message, Communication.MessageType type) // in server thread (not socket's, nor UI!)
+        public void OnIncommingMessage(byte[] message, Communication.MessageType type) // in server thread (not socket's, nor UI!)
         {
             Logger.Instance.LogNotice("Received message of type: " + type.ToString() + ". Message body: " + message);
             DispatchMessage(message, type);
@@ -31,7 +31,7 @@ namespace SRint
             SRintAPI.Command command = null;
             bool isCommandInQueue = commandsQueue.TryTake(out command, 0);
             if (isCommandInQueue)
-                commandsReactions[command](command);
+                commandsReactions[command.GetType()](command);
 
             PropagateToNetwork();
         }
@@ -43,7 +43,7 @@ namespace SRint
 
         private class RecvMessageHandler : MessageHandler
         {
-            public RecvMessageHandler(string message, Communication.MessageType type)
+            public RecvMessageHandler(byte[] message, Communication.MessageType type)
             {
                 this.message = message;
                 this.type = type;
@@ -51,18 +51,18 @@ namespace SRint
 
             public void Execute(ServerController controller)
             {
-                protobuf.Message m = Serialization.MessageSerializer.Deserialize(Encoding.ASCII.GetBytes(message));
+                protobuf.Message m = Serialization.MessageSerializer.Deserialize(message);
                 controller.snapshot = new StateSnapshot(m);
                 controller.OnSnapshotChange();
             }
 
-            private string message;
+            private byte[] message;
             private Communication.MessageType type;
         }
 
         private class ListenMessageHandler : MessageHandler
         {
-            public ListenMessageHandler(string message, Communication.MessageType type)
+            public ListenMessageHandler(byte[] message, Communication.MessageType type)
             {
                 this.message = message;
                 this.type = type;
@@ -72,10 +72,10 @@ namespace SRint
                 // TODO implement here full logic of Listen packet appear
             }
 
-            private string message;
+            private byte[] message;
             private Communication.MessageType type;
         }
-        private void DispatchMessage(string message, Communication.MessageType type)
+        private void DispatchMessage(byte[] message, Communication.MessageType type)
         {
             switch (type)
             {
@@ -92,7 +92,7 @@ namespace SRint
         private void PropagateToNetwork()
         {
             var toSend = Serialization.MessageSerializer.Serialize(snapshot.message);
-            sender.SendMessage(Encoding.ASCII.GetString(toSend));
+            sender.SendMessage(toSend);
         }
 
         private void OnSnapshotChange()
@@ -116,12 +116,14 @@ namespace SRint
         }
         private void SetValue(SRintAPI.Command command)
         {
-            // TODO implement this
+            var v = snapshot.variables.Find((variable) => variable.name == command.name);
+            var c = command as SRintAPI.SetValueCommand;
+            v.value = c.value;
         }
 
         private SettingsForm.Settings settings;
         private BlockingCollection<SRintAPI.Command> commandsQueue;
-        private readonly Dictionary<SRintAPI.Command, Action<SRintAPI.Command>> commandsReactions;
+        private readonly Dictionary<Type, Action<SRintAPI.Command>> commandsReactions;
         private Communication.MessageSender sender;
         private StateSnapshot snapshot = null;
         private MessageHandler messageHandler;        

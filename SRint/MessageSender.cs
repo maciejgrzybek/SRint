@@ -10,7 +10,7 @@ namespace SRint
     {
         public interface MessageSender
         {
-            void SendMessage(string message);
+            void SendMessage(byte[] message);
         }
     }
 }

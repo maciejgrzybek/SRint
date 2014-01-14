@@ -16,7 +16,7 @@ namespace SRint
 
         public interface IncommingMessageObserver
         {
-            void OnIncommingMessage(string message, MessageType type);
+            void OnIncommingMessage(byte[] message, MessageType type);
         }
     }
 }
