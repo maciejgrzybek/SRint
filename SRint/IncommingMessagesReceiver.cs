@@ -8,12 +8,13 @@ namespace SRint
 {
     namespace Communication
     {
+        public delegate void IncommingMessageHandler(byte[] message);
         public interface IncommingMessagesReceiver
         {
+            event IncommingMessageHandler OnIncommingMessage;
             void StartSocketPolling();
             void StopSocketPolling();
             //string ReadNextMessage();
-            void RegisterIncommingMessageObserver(IncommingMessageObserver observer);
         }
     }
 }

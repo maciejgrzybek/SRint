@@ -43,6 +43,8 @@ namespace SRint
                 private volatile bool workIndicator = false;
             }
 
+            public event IncommingMessageHandler OnIncommingMessage;
+
             public Server(string address = "tcp://*", int recvPort = 5555, int poolSize = 1)
             {
                 context = new ZMQ.Context(poolSize);
@@ -78,7 +80,7 @@ namespace SRint
                 byte[] recvMessage = ReadNextRecvMessage();
 
                 if (recvMessage != null)
-                    NotifyMessageObservers(recvMessage, MessageType.Recv);
+                    NotifyMessageObservers(recvMessage);
             }
 
             public byte[] ReadNextRecvMessage()
@@ -91,9 +93,12 @@ namespace SRint
                 return message;
             }
 
-            private void NotifyMessageObservers(byte[] message, MessageType type)
+            private void NotifyMessageObservers(byte[] message)
             {
-                incommingMessageObserverList.ForEach(observer => observer.OnIncommingMessage(message, type));
+                if (OnIncommingMessage != null)
+                {
+                    OnIncommingMessage(message);
+                }
             }
 
             private void BindToRecvSocket(string addr, int port)
@@ -102,7 +107,6 @@ namespace SRint
                 recvSocket.Bind(address);
             }
 
-            private List<IncommingMessageObserver> incommingMessageObserverList = new List<IncommingMessageObserver>();
             private ZMQ.Context context;
             private ZMQ.Socket recvSocket;
             private ZMQ.Socket sendSocket;

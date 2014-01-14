@@ -51,7 +51,7 @@ namespace SRint
             StopServer_Button.IsEnabled = false;
 
             ServerController ctrl = new ServerController(form.settings, commandsQueue, server);
-            server.RegisterIncommingMessageObserver(ctrl);
+            server.OnIncommingMessage += ctrl.OnIncommingMessage;
 
             ctrl.OnSnapshotChanged += api.controller_OnSnapshotChanged;
         }

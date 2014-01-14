@@ -7,7 +7,7 @@ using System.Collections.Concurrent;
 
 namespace SRint
 {
-    class ServerController : Communication.IncommingMessageObserver
+    class ServerController
     {
         public event EventHandler<StateSnapshot> OnSnapshotChanged;
         public ServerController(SettingsForm.Settings settings, BlockingCollection<SRintAPI.Command> commandsQueue, Communication.MessageSender sender)
@@ -23,10 +23,10 @@ namespace SRint
             this.sender = sender;
         }
 
-        public void OnIncommingMessage(byte[] message, Communication.MessageType type) // in server thread (not socket's, nor UI!)
+        public void OnIncommingMessage(byte[] message) // in server thread (not socket's, nor UI!)
         {
-            Logger.Instance.LogNotice("Received message of type: " + type.ToString() + ". Message body: " + message);
-            DispatchMessage(message, type);
+            Logger.Instance.LogNotice("Received message: " + message);
+            DispatchMessage(message);
 
             SRintAPI.Command command = null;
             bool isCommandInQueue = commandsQueue.TryTake(out command, 0);
@@ -41,52 +41,11 @@ namespace SRint
             void Execute(ServerController controller);
         }
 
-        private class RecvMessageHandler : MessageHandler
+        private void DispatchMessage(byte[] message)
         {
-            public RecvMessageHandler(byte[] message, Communication.MessageType type)
-            {
-                this.message = message;
-                this.type = type;
-            }
-
-            public void Execute(ServerController controller)
-            {
-                protobuf.Message m = Serialization.MessageSerializer.Deserialize(message);
-                controller.snapshot = new StateSnapshot(m);
-                controller.OnSnapshotChange();
-            }
-
-            private byte[] message;
-            private Communication.MessageType type;
-        }
-
-        private class ListenMessageHandler : MessageHandler
-        {
-            public ListenMessageHandler(byte[] message, Communication.MessageType type)
-            {
-                this.message = message;
-                this.type = type;
-            }
-            public void Execute(ServerController controller)
-            {
-                // TODO implement here full logic of Listen packet appear
-            }
-
-            private byte[] message;
-            private Communication.MessageType type;
-        }
-        private void DispatchMessage(byte[] message, Communication.MessageType type)
-        {
-            switch (type)
-            {
-                case Communication.MessageType.Listen:
-                    messageHandler = new ListenMessageHandler(message, type);
-                    break;
-                case Communication.MessageType.Recv:
-                    messageHandler = new RecvMessageHandler(message, type);
-                    break;
-            }
-            messageHandler.Execute(this);
+            protobuf.Message m = Serialization.MessageSerializer.Deserialize(message);
+            snapshot = new StateSnapshot(m);
+            OnSnapshotChange();
         }
 
         private void PropagateToNetwork()
@@ -106,19 +65,29 @@ namespace SRint
         private void CreateVariable(SRintAPI.Command command)
         {
             protobuf.Message.Variable variable = new protobuf.Message.Variable { name = command.name, value = 0 };
-            variable.owners.Add(new protobuf.Message.NodeDescription {ip = settings.address, port = settings.port });
             snapshot.variables.Add(variable);
+            SetMeAsOwner(variable);
         }
 
         private void DeleteVariable(SRintAPI.Command command)
         {
             // TODO implement this
         }
+
         private void SetValue(SRintAPI.Command command)
         {
             var v = snapshot.variables.Find((variable) => variable.name == command.name);
             var c = command as SRintAPI.SetValueCommand;
             v.value = c.value;
+            SetMeAsOwner(v);
+        }
+
+        private void SetMeAsOwner(protobuf.Message.Variable variable)
+        {
+            // TODO take under consideration node_id!
+            bool existInOwners = variable.owners.Exists((node) => { return (node.ip == settings.address && node.port == settings.port); });
+            if (!existInOwners)
+                variable.owners.Add(new protobuf.Message.NodeDescription { ip = settings.address, port = settings.port });
         }
 
         private SettingsForm.Settings settings;
@@ -126,6 +95,5 @@ namespace SRint
         private readonly Dictionary<Type, Action<SRintAPI.Command>> commandsReactions;
         private Communication.MessageSender sender;
         private StateSnapshot snapshot = null;
-        private MessageHandler messageHandler;        
     }
 }
