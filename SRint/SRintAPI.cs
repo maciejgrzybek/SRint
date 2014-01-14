@@ -37,6 +37,7 @@ namespace SRint
 
         public void controller_OnSnapshotChanged(object sender, StateSnapshot e) // in back-end thread
         {
+            lastSnapshot = e;
             e.variables.ForEach(variable =>
             {
                 protobuf.Message.Variable foundVariable = getVariable(variable.name);
@@ -45,7 +46,6 @@ namespace SRint
                     OnVariableValueChange(new VariableChangeDescription { OldValue = foundVariable.value, NewValue = variable.value, VariableName = variable.name });
                 }
             });
-            lastSnapshot = e;
         }
 
         public void dhCreate(string name)
