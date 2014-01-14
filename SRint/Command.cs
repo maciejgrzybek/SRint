@@ -115,7 +115,10 @@ namespace SRint
 
             string name = arguments[0];
 
-            long value = api.dhGet(name);
+            long? value = api.dhGet(name);
+
+            if (value == null)
+                return "Variable '" + name + "' does not exist.";
 
             return name + " = " + value;
         }

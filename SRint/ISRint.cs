@@ -13,7 +13,7 @@ namespace SRint
 
         void dhCreate(string name);
         void dhFree(string name);
-        long dhGet(string name);
+        long? dhGet(string name);
         void dhSet(string name, long value);
         void dhSetCallback(string name, OnConcreteVariableValueChanged callback);
         List<protobuf.Message.Variable> getVariables();

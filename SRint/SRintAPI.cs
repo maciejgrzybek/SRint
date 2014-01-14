@@ -56,11 +56,11 @@ namespace SRint
         {
             commandsQueue.TryAdd(new DeleteVariableCommand { name = name }, 0);
         }
-        public long dhGet(string name)
+        public long? dhGet(string name)
         {
             protobuf.Message.Variable variable = getVariable(name);
             if (variable == null)
-                return -1;
+                return null;
 
             return variable.value;
         }
