@@ -58,43 +58,13 @@ namespace SRint
                 receivingThread = new Thread(receiver.StartReading);
 
                 sendSocket = context.Socket(ZMQ.SocketType.PUSH);
-                //sendSocket.Connect("tcp://192.168.43.72:5555");
                 sendSocket.Connect("tcp://169.254.26.129:5555");
-
-                // FIXME remove everything below
-
-                protobuf.Message.State state = new protobuf.Message.State { state_id = 15 };
-                state.nodes.Add(new protobuf.Message.NodeDescription { node_id = 31, ip = "127.0.0.1", port = 5555 });
-
-                protobuf.Message.Variable v = new protobuf.Message.Variable { name = "dupa", value = 72 };
-                v.owners.Add(new protobuf.Message.NodeDescription { node_id = 31, ip = "127.0.0.1", port = 5555 });
-                state.variables.Add(v);
-
-                protobuf.Message m = new protobuf.Message { type = protobuf.Message.MessageType.STATE, state_content = state };
-                var arr = Serialization.MessageSerializer.Serialize(m);
-
-                protobuf.Message ms = Serialization.MessageSerializer.Deserialize(arr);
-
-                //SendMessage(arr);
             }
 
             public void SendMessage(byte[] message)
             {
                 sendSocket.Send(message);
             }
-            //public void SendMessage(string message)
-            //{
-             //   sendSocket.Send(message, Encoding.ASCII);
-                //var recv = sendSocket.Recv(2000);
-                //if (recv != null)
-                //{
-                //    Logger.Instance.LogNotice("Received in return: " + Encoding.ASCII.GetString(recv));
-                //    protobuf.Message m = Serialization.MessageSerializer.Deserialize(recv);
-                //    Logger.Instance.LogNotice("Message = " + m.type.ToString() + " " + m.state_content.state_id + " " + m.state_content.variables[0].name + " = " + m.state_content.variables[0].value);
-                //}
-                //else
-                //    Logger.Instance.LogError("recv = null");
-            //}
 
             public void StartSocketPolling()
             {
@@ -151,10 +121,6 @@ namespace SRint
 
             private void NotifyMessageObservers(byte[] message, MessageType type)
             {
-                //foreach(var observer in incommingMessageObserverList)
-                //{
-                //    observer.OnIncommingMessage(message, type); 
-                //}
                 incommingMessageObserverList.ForEach(observer => observer.OnIncommingMessage(message, type));
             }
 
