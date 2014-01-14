@@ -75,14 +75,16 @@ namespace SRint
             {
                 throw new CommandNotFoundException();
             }
-            
         }
 
         public void PrintMessage(string message)
         {
-            consoleTextBlock.Text += "\n";
-            consoleTextBlock.Text += message;
-            scrollViewer.ScrollToBottom();
+            this.Dispatcher.Invoke(() =>
+                {
+                    consoleTextBlock.Text += "\n";
+                    consoleTextBlock.Text += message;
+                    scrollViewer.ScrollToBottom();
+                });
         }
 
         private Dictionary<string, Command> commands;
