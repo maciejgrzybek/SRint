@@ -14,8 +14,8 @@
         </Grid.ColumnDefinitions>
 
         <Label Grid.Row="0" Grid.Column="0">IP address</Label>
-        <TextBox Name="ipAddress" Grid.Row="0" Grid.Column="1">127.0.0.1</TextBox>
-        <Label Grid.Row="1" Grid.Column="0">port</Label>
+        <TextBox Name="ipAddress" Grid.Row="0" Grid.Column="1" KeyDown="ipAddress_KeyDown">0.0.0.0</TextBox>
+        <Label Grid.Row="1" Grid.Column="0" KeyDown="Label_KeyDown">port</Label>
         <TextBox Name="port" Grid.Row="1" Grid.Column="1">5555</TextBox>
         
         <Button Grid.Row="2" Grid.ColumnSpan="2" Content="Ok" Click="Button_Click"></Button>
