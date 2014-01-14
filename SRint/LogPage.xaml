@@ -17,10 +17,9 @@
             <ColumnDefinition Width="Auto"></ColumnDefinition>
             <ColumnDefinition Width="*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
-            
-            <TextBlock Name="loggerTextBlock" Grid.Row="1" Grid.ColumnSpan="1" HorizontalAlignment="Stretch" ScrollViewer.CanContentScroll="True">SRint v0.0.1-devel C# edition</TextBlock>
-            <Label Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left">Address:</Label>
-            <TextBox Name="addressTextBox"  Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" Text="0.0.0.0"/>
-            <Button Grid.Row="3" Grid.ColumnSpan="2" Content="Send" Click="Button_Click"></Button>
-        </Grid>
+
+        <ScrollViewer Name="scrollViewer" Grid.Row="1" Grid.ColumnSpan="2">
+            <TextBlock Name="loggerTextBlock" >SRint v0.0.1-devel C# edition</TextBlock>
+        </ScrollViewer>
+    </Grid>
 </Page>

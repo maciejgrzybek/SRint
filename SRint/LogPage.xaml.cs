@@ -31,16 +31,24 @@ namespace SRint
 
         private void OnErrorOccured(object sender, LoggerEventArgs args)
         {
-            loggerTextBlock.Text += "\n";
-            loggerTextBlock.Text += "!!! ";
-            loggerTextBlock.Text += args.Message;
+            this.Dispatcher.Invoke(() =>
+              {
+                    loggerTextBlock.Text += "\n";
+                    loggerTextBlock.Text += "!!! ";
+                    loggerTextBlock.Text += args.Message;
+                    scrollViewer.ScrollToBottom();
+              });
         }
 
         private void OnWarningOccured(object sender, LoggerEventArgs args)
         {
-            loggerTextBlock.Text += "\n";
-            loggerTextBlock.Text += "! ";
-            loggerTextBlock.Text += args.Message;
+            this.Dispatcher.Invoke(() =>
+              {
+                    loggerTextBlock.Text += "\n";
+                    loggerTextBlock.Text += "! ";
+                    loggerTextBlock.Text += args.Message;
+                    scrollViewer.ScrollToBottom();
+             });
         }
 
         private void OnNoticeOccured(object sender, LoggerEventArgs args)
@@ -49,6 +57,7 @@ namespace SRint
                 {
                     loggerTextBlock.Text += "\n";
                     loggerTextBlock.Text += args.Message;
+                    scrollViewer.ScrollToBottom();
                 });
         }
 

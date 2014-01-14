@@ -24,6 +24,7 @@ namespace SRint
         public VariablesView(SRintAPI api)
         {
             InitializeComponent();
+            System.Windows.Input.FocusManager.SetFocusedElement(this, inputText);
             commands = new Dictionary<string, Command>() {
                 { "help", new ShowHelpCommand() },
                 { "create", new CreateVariableCommand(api) },
@@ -45,7 +46,7 @@ namespace SRint
             }
             catch (CommandNotFoundException ex)
             {
-                consoleTextBlock.Text += "\nUnknown command: " + command;
+                PrintMessage("Unknown command: " + command);
             }
         }
 
@@ -81,6 +82,7 @@ namespace SRint
         {
             consoleTextBlock.Text += "\n";
             consoleTextBlock.Text += message;
+            scrollViewer.ScrollToBottom();
         }
 
         private Dictionary<string, Command> commands;
