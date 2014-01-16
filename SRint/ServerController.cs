@@ -158,7 +158,19 @@ namespace SRint
             // TODO check whether node already exists
             var nodes = snapshot.message.state_content.nodes;
             int myIndex = GetMyIndexInNodeDescriptionList();
-            nodes.Insert(myIndex + 1, new protobuf.Message.NodeDescription { node_id = -1, ip = cmd.nodeAddress, port = cmd.nodePort }); // FIXME set appropriate node_id!
+            nodes.Insert(myIndex + 1, new protobuf.Message.NodeDescription { node_id = GetHighestNodeID() + 1, ip = cmd.nodeAddress, port = cmd.nodePort }); // FIXME set appropriate node_id!
+        }
+
+        private int GetHighestNodeID()
+        {
+            int highestNodeID = 1;
+            var nodes = snapshot.message.state_content.nodes;
+            nodes.ForEach((node) =>
+            {
+                if (node.node_id > highestNodeID)
+                    highestNodeID = node.node_id;
+            });
+            return highestNodeID;
         }
 
         private int GetMyIndexInNodeDescriptionList()
