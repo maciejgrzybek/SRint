@@ -54,8 +54,19 @@ namespace SRint
                 receiver = new ReceivingThread(recvMessagesCollection, recvSocket);
                 receivingThread = new Thread(receiver.StartReading);
 
-                sendSocket = context.Socket(ZMQ.SocketType.PUSH);
-                sendSocket.Connect("tcp://169.254.26.129:5555");
+                sendSocket = CreateSendingSocket();
+            }
+
+            public void Connect(string address, int port)
+            {
+                string addr = "tcp://" + address + ":" + port.ToString();
+                sendSocket.Connect(addr);
+            }
+
+            public void Disconnect()
+            {
+                sendSocket.Dispose();
+                sendSocket = CreateSendingSocket();
             }
 
             public void SendMessage(byte[] message)
@@ -105,6 +116,11 @@ namespace SRint
             {
                 string address = "tcp://" +addr + ":" + port.ToString();
                 recvSocket.Bind(address);
+            }
+
+            private ZMQ.Socket CreateSendingSocket()
+            {
+                return context.Socket(ZMQ.SocketType.PUSH);
             }
 
             private ZMQ.Context context;

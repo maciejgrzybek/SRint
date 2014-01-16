@@ -10,6 +10,7 @@ namespace SRint
     {
         public interface MessageSender
         {
+            void Connect(string address, int port);
             void SendMessage(byte[] message);
         }
     }

@@ -10,6 +10,8 @@ namespace SRint
     class ServerController
     {
         public event EventHandler<StateSnapshot> OnSnapshotChanged;
+        public class InvalidStateException : SystemException
+        {}
         public ServerController(SettingsForm.Settings settings, BlockingCollection<SRintAPI.Command> commandsQueue, Communication.MessageSender sender)
         {
             this.settings = settings;
@@ -23,10 +25,33 @@ namespace SRint
             this.sender = sender;
         }
 
+        public void EnterNetwork()
+        {
+            if (settings.nodeAddress == null || settings.nodePort == null)
+                throw new InvalidStateException();
+
+            sender.Connect(settings.nodeAddress, (int)settings.nodePort);
+
+            SendEntryRequest();
+        }
+
+        private void SendEntryRequest()
+        {
+            protobuf.Message.State state = new protobuf.Message.State { state_id = -1 };
+            state.nodes.Add(new protobuf.Message.NodeDescription { node_id = -1, ip = settings.address, port = settings.port });
+            protobuf.Message message = new protobuf.Message { state_content = state, type = protobuf.Message.MessageType.ENTRY_REQUEST };
+
+            byte[] serializedMessage = Serialization.MessageSerializer.Serialize(message);
+            sender.SendMessage(serializedMessage);
+        }
+
         public void OnIncommingMessage(byte[] message) // in server thread (not socket's, nor UI!)
         {
             Logger.Instance.LogNotice("Received message: " + message);
-            DispatchMessage(message);
+            bool isActionPerformedAlready = DispatchMessage(message); // TODO real dispatching - entry vs normal vs election
+
+            if (isActionPerformedAlready)
+                return; // no further action in this turn
 
             SRintAPI.Command command = null;
             bool isCommandInQueue = commandsQueue.TryTake(out command, 0);
@@ -41,11 +66,17 @@ namespace SRint
             void Execute(ServerController controller);
         }
 
-        private void DispatchMessage(byte[] message)
+        private bool DispatchMessage(byte[] message)
         {
             protobuf.Message m = Serialization.MessageSerializer.Deserialize(message);
+            if (m.type == protobuf.Message.MessageType.ENTRY_REQUEST)
+            {
+                // TODO handle entry request
+                return true;
+            }
             snapshot = new StateSnapshot(m);
             OnSnapshotChange();
+            return false;
         }
 
         private void PropagateToNetwork()

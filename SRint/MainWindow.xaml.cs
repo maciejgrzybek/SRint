@@ -55,6 +55,9 @@ namespace SRint
             ServerController ctrl = new ServerController(form.settings, commandsQueue, server);
             server.OnIncommingMessage += ctrl.OnIncommingMessage;
 
+            if (form.settings.nodeAddress != null)
+                ctrl.EnterNetwork();
+
             ctrl.OnSnapshotChanged += api.controller_OnSnapshotChanged;
         }
 
