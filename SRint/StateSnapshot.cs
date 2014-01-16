@@ -11,6 +11,8 @@ namespace SRint
         public StateSnapshot()
         {
             variables = new List<protobuf.Message.Variable>();
+            message = new protobuf.Message();
+            message.state_content = new protobuf.Message.State();
         }
         public StateSnapshot(protobuf.Message message)
         {

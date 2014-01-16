@@ -61,10 +61,12 @@ namespace SRint
             {
                 string addr = "tcp://" + address + ":" + port.ToString();
                 sendSocket.Connect(addr);
+                connectedToNodeInfo = new ConnectionInfo { address = address, port = port };
             }
 
             public void Disconnect()
             {
+                connectedToNodeInfo = null;
                 sendSocket.Dispose();
                 sendSocket = CreateSendingSocket();
             }
@@ -73,6 +75,8 @@ namespace SRint
             {
                 sendSocket.Send(message);
             }
+
+            public ConnectionInfo? ConnectedToNodeInfo { get { return connectedToNodeInfo; } }
 
             public void StartSocketPolling()
             {
@@ -131,6 +135,7 @@ namespace SRint
 
             private ReceivingThread receiver;
             private Thread receivingThread;
+            private ConnectionInfo? connectedToNodeInfo;
         }
 
         class ServerPoller

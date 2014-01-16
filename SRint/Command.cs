@@ -30,11 +30,12 @@ namespace SRint
             if (arguments == null)
             {
                 msg = "help - prints this message"
-                    + "\nlist"
-                    + "\ncreate name"
-                    + "\nfree name"
-                    + "\nset name value"
-                    + "\nget name";
+                    + "\nlist - lists variables registered in network"
+                    + "\ncreate name - creates new variable"
+                    + "\nfree name - marks variable as no more needed"
+                    + "\nset name value - sets value for 'name' variable"
+                    + "\nget name - retrieves value of 'name' variable"
+                    + "\nshowInfrastructure - prints registered infrastructure";
             }
             return msg;
         }
@@ -124,6 +125,25 @@ namespace SRint
         }
 
         private ISRint api;
+    }
+
+    class ShowInfrastructureCommand : Command
+    {
+        public ShowInfrastructureCommand(SRintAPI api)
+        {
+            this.api = api;
+        }
+
+        public string Execute(string[] arguments)
+        {
+            var nodes = api.Infrastructure;
+            string result = "Nodes available in network:\n";
+            nodes.ForEach((node) => { result += node.node_id + "," + node.ip + ":" + node.port + "\n"; });
+
+            return result;
+        }
+
+        private SRintAPI api;
     }
 
     class ShowVariablesCommand : Command

@@ -31,7 +31,8 @@ namespace SRint
                 { "free", new DeleteVariableCommand(api) },
                 { "list", new ShowVariablesCommand(api) },
                 { "set", new SetVariableCommand(api) },
-                { "get", new GetVariableCommand(api) }
+                { "get", new GetVariableCommand(api) },
+                { "showInfrastructure", new ShowInfrastructureCommand(api) }
              };
         }
 

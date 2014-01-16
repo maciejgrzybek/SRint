@@ -11,17 +11,28 @@ namespace SRint
     {
         public event EventHandler<VariableChangeDescription> OnVariableValueChanged;
         abstract public class Command
+        {}
+
+        public class AppendNodeToNetworkCommand : Command
+        {
+            public string nodeAddress { get; set; }
+            public int nodePort { get; set; }
+            public bool isFirstAppendedNode { get; set; }
+        }
+
+        public class VariableManipulatingCommand : Command
         {
             public string name { get; set; }
         }
-        public class CreateVariableCommand : Command
+
+        public class CreateVariableCommand : VariableManipulatingCommand
         {}
-        public class SetValueCommand : Command
+        public class SetValueCommand : VariableManipulatingCommand
         {
             public long value { get; set; }
         }
 
-        public class DeleteVariableCommand : Command
+        public class DeleteVariableCommand : VariableManipulatingCommand
         {}
 
         public SRintAPI()
@@ -76,6 +87,8 @@ namespace SRint
         {
             return lastSnapshot.variables;
         }
+
+        public List<protobuf.Message.NodeDescription> Infrastructure { get { return lastSnapshot.message.state_content.nodes; } }
 
         private void OnVariableValueChange(VariableChangeDescription change)
         {
