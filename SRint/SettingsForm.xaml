@@ -7,6 +7,9 @@
             <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"></ColumnDefinition>
@@ -15,9 +18,14 @@
 
         <Label Grid.Row="0" Grid.Column="0">IP address</Label>
         <TextBox Name="ipAddress" Grid.Row="0" Grid.Column="1">0.0.0.0</TextBox>
-        <Label Grid.Row="1" Grid.Column="0">port</Label>
+        <Label Grid.Row="1" Grid.Column="0">Port</Label>
         <TextBox Name="port" Grid.Row="1" Grid.Column="1">5555</TextBox>
-        
-        <Button Grid.Row="2" Grid.ColumnSpan="2" Content="Ok" Click="Button_Click" IsDefault="True"></Button>
+        <CheckBox Name="isEnteringNetworkCheckbox" Grid.Row="2" Grid.ColumnSpan="2" Checked="CheckBox_Checked" Unchecked="isEnteringNetworkCheckbox_Unchecked">Entering network?</CheckBox>
+        <Label Grid.Row="3" Grid.Column="0">Node address</Label>
+        <TextBox Name="nodeAddress" Grid.Row="3" Grid.Column="1" IsEnabled="False"></TextBox>
+        <Label Grid.Row="4" Grid.Column="0">Node port</Label>
+        <TextBox Name="nodePort" Grid.Row="4" Grid.Column="1" IsEnabled="False">5555</TextBox>
+        <Button Grid.Row="5" Grid.Column="0" Content="Ok" Click="Button_Click" IsDefault="True"></Button>
+        <Button Grid.Row="5" Grid.Column="1" Content="Cancel" Click="Button_Click_1" IsDefault="True"></Button>
     </Grid>
 </Window>

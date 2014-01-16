@@ -36,7 +36,9 @@ namespace SRint
         private void CreateServerButton_Click(object sender, RoutedEventArgs e)
         {
             SettingsForm form = new SettingsForm();
-            form.ShowDialog();
+            bool? result = form.ShowDialog();
+            if (result == false)
+                return;
 
             Logger.Instance.LogNotice("Spawning server. Address = " + form.settings.address + ":" + form.settings.port);
 
