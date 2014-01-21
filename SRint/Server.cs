@@ -16,7 +16,7 @@ namespace SRint
         {
             class ReceivingThread
             {
-                public ReceivingThread(BlockingCollection<byte[]> messagesCollection, ZmqSocket socket)
+                public ReceivingThread(BlockingCollection<Message> messagesCollection, ZmqSocket socket)
                 {
                     this.socket = socket;
                     this.messagesCollection = messagesCollection;
@@ -33,7 +33,7 @@ namespace SRint
                         if (result > 0 && received != null && received.Length > 0)
                         {
                             Array.Resize(ref received, result);
-                            messagesCollection.Add(received);
+                            messagesCollection.Add(new NetworkMessage { payload = received });
                         }
                     }
                 }
@@ -44,7 +44,7 @@ namespace SRint
                 }
 
                 private ZmqSocket socket;
-                private BlockingCollection<byte[]> messagesCollection;
+                private BlockingCollection<Message> messagesCollection;
                 private volatile bool workIndicator = false;
             }
 
@@ -68,15 +68,18 @@ namespace SRint
 
             public void Connect(string address, int port)
             {
-                string addr = address + ":" + port.ToString();
+                string addr = "tcp://" + address + ":" + port.ToString();
                 sendSocket.Connect(addr);
                 connectedToNodeInfo = new ConnectionInfo { address = address, port = port };
             }
 
             public void Disconnect()
             {
-                string address = "tcp://" + connectedToNodeInfo.Value.address + ":" + connectedToNodeInfo.Value.port;
-                sendSocket.Disconnect(address);
+                if (connectedToNodeInfo.HasValue)
+                {
+                    string address = "tcp://" + connectedToNodeInfo.Value.address + ":" + connectedToNodeInfo.Value.port;
+                    sendSocket.Disconnect(address);
+                }
                 sendSocket.Dispose();
                 connectedToNodeInfo = null;
                 sendSocket = CreateSendingSocket();
@@ -103,15 +106,15 @@ namespace SRint
 
             public void OperateOnce()
             {            
-                byte[] recvMessage = ReadNextRecvMessage();
+                Message recvMessage = ReadNextRecvMessage();
 
                 if (recvMessage != null)
                     NotifyMessageObservers(recvMessage);
             }
 
-            public byte[] ReadNextRecvMessage()
+            public Message ReadNextRecvMessage()
             {
-                byte[] message;
+                Message message;
                 bool isAnyMessageInQueue = recvMessagesCollection.TryTake(out message, 1000); // TODO parametrize timeout
                 if (!isAnyMessageInQueue)
                     return null;
@@ -119,7 +122,7 @@ namespace SRint
                 return message;
             }
 
-            private void NotifyMessageObservers(byte[] message)
+            private void NotifyMessageObservers(Message message)
             {
                 if (OnIncommingMessage != null)
                 {
@@ -143,7 +146,7 @@ namespace SRint
             private ZeroMQ.ZmqSocket sendSocket;
             private ZeroMQ.Monitoring.ZmqMonitor sendingMonitor;
 
-            private BlockingCollection<byte[]> recvMessagesCollection = new BlockingCollection<byte[]>();
+            private readonly BlockingCollection<Message> recvMessagesCollection = new BlockingCollection<Message>();
 
             private ReceivingThread receiver;
             private Thread receivingThread;

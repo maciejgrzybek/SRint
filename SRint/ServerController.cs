@@ -51,7 +51,7 @@ namespace SRint
             sender.SendMessage(serializedMessage);
         }
 
-        public void OnIncommingMessage(byte[] message) // in server thread (not socket's, nor UI!)
+        public void OnIncommingMessage(Communication.Message message) // in server thread (not socket's, nor UI!)
         {
             bool isActionPerformedAlready = DispatchMessage(message); // TODO real dispatching - entry vs normal vs election
 
@@ -67,8 +67,9 @@ namespace SRint
             PropagateToNetwork();
         }
 
-        private bool DispatchMessage(byte[] message)
+        private bool DispatchMessage(Communication.Message msg)
         {
+            byte[] message = ((Communication.NetworkMessage)msg).payload;
             protobuf.Message m = Serialization.MessageSerializer.Deserialize(message);
             if (m.type == protobuf.Message.MessageType.ENTRY_REQUEST)
             {

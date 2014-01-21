@@ -8,7 +8,7 @@ namespace SRint
 {
     namespace Communication
     {
-        public delegate void IncommingMessageHandler(byte[] message);
+        public delegate void IncommingMessageHandler(Message message);
         public interface IncommingMessagesReceiver
         {
             event IncommingMessageHandler OnIncommingMessage;
