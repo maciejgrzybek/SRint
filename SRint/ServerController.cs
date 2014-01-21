@@ -69,8 +69,41 @@ namespace SRint
 
         private bool DispatchMessage(Communication.Message msg)
         {
-            byte[] message = ((Communication.NetworkMessage)msg).payload;
+            {
+                var m = msg as Communication.NetworkMessage;
+                if (m != null) // change this to more sophisitcated dispatching
+                    return HandleNetworkMessage(m);
+            }
+            {
+                var m = msg as Communication.ConnectedCommunicationMetaMessage;
+                if (m != null)
+                    return HandleConnection(m);
+            }
+            //{
+            //    var m = msg as Communication.ConnectRetiredCommunicationMetaMessage;
+            //    if (m != null)
+            //        return HandleConnectionRetry(m);
+            //}
+            {
+                var m = msg as Communication.DisconnectedCommunicationMetaMessage;
+                if (m != null)
+                    return HandleDisconnection(m);
+            }
+            
+            return false;
+
+        }
+
+        private bool HandleNetworkMessage(Communication.NetworkMessage msg)
+        {
+            byte[] message = msg.payload;
             protobuf.Message m = Serialization.MessageSerializer.Deserialize(message);
+
+            if (m.type == protobuf.Message.MessageType.STATE)
+            {
+                if (snapshot != null && snapshot.message.state_content != null && m.state_content.state_id <= snapshot.message.state_content.state_id)
+                    return true; // skip snapshot with earlier state than last known by me
+            }
             if (m.type == protobuf.Message.MessageType.ENTRY_REQUEST)
             {
                 System.Diagnostics.Debug.Assert(m.state_content.nodes.Count == 1);
@@ -82,6 +115,33 @@ namespace SRint
             snapshot = new StateSnapshot(m);
             OnSnapshotChange();
             return false;
+        }
+
+        private bool HandleConnection(Communication.ConnectedCommunicationMetaMessage msg)
+        {
+            Logger.Instance.LogNotice("Connected.");
+            return true; // no next actions needed
+        }
+
+        private bool HandleDisconnection(Communication.DisconnectedCommunicationMetaMessage msg)
+        {
+            Logger.Instance.LogNotice("Disconnection.");
+            RemoveNextNode();
+            EnsureConnectionToAppropriateNextNode();
+            PropagateToNetwork();
+            return true;
+        }
+
+        private void RemoveNextNode()
+        {
+            if (snapshot.message.state_content.nodes.Count == 1)
+                return; // don't remove yourself
+
+            int index = GetMyIndexInNodeDescriptionList();
+            if (index + 1 == snapshot.message.state_content.nodes.Count) // is last element
+                snapshot.message.state_content.nodes.RemoveAt(0);
+            else
+                snapshot.message.state_content.nodes.RemoveAt(index + 1);
         }
 
         private bool IsTokenCreationNeeded()
@@ -115,6 +175,8 @@ namespace SRint
 
         private void PropagateToNetwork()
         {
+            if (snapshot.message.type == protobuf.Message.MessageType.STATE)
+                snapshot.message.state_content.state_id += 1;
             var toSend = Serialization.MessageSerializer.Serialize(snapshot.message);
             sender.SendMessage(toSend);
         }

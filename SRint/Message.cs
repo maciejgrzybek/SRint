@@ -17,8 +17,41 @@ namespace SRint
         }
 
         public class MetaMessage : Message
+        {}
+
+        public class CommunicationMetaMessage : Message
         {
-            ZeroMQ.Monitoring.MonitorEvents ev;
+            public ZeroMQ.ZmqSocket socket;
         }
+
+        public class ConnectedCommunicationMetaMessage : CommunicationMetaMessage
+        {}
+
+        public class ConnectDelayedCommunicationMetaMessage : CommunicationMetaMessage
+        {}
+
+        public class ConnectRetiredCommunicationMetaMessage : CommunicationMetaMessage
+        {}
+
+        public class ListeningCommunicationMetaMessage : CommunicationMetaMessage
+        {}
+
+        public class BindFailedCommunicationMetaMessage : CommunicationMetaMessage
+        {}
+
+        public class AcceptedCommunicationMetaMessage : CommunicationMetaMessage
+        {}
+
+        public class AcceptFailedCommunicationMetaMessage : CommunicationMetaMessage
+        {}
+
+        public class ClosedCommunicationMetaMessage : CommunicationMetaMessage
+        {}
+
+        public class CloseFailedCommunicationMetaMessage : CommunicationMetaMessage
+        {}
+
+        public class DisconnectedCommunicationMetaMessage : CommunicationMetaMessage
+        {}
     }
 }

@@ -60,10 +60,6 @@ namespace SRint
                 receivingThread = new Thread(receiver.StartReading);
 
                 sendSocket = CreateSendingSocket();
-                SocketMonitor monitor = new SocketMonitor(context, sendSocket);
-                monitor.OnConnected += (ZmqSocket socket) => { Logger.Instance.LogNotice("Connected."); };
-                monitor.OnDisconnected += (ZmqSocket socket) => { Logger.Instance.LogNotice("Disconnected."); };
-                monitor.Start();
             }
 
             public void Connect(string address, int port)
@@ -80,9 +76,7 @@ namespace SRint
                     string address = "tcp://" + connectedToNodeInfo.Value.address + ":" + connectedToNodeInfo.Value.port;
                     sendSocket.Disconnect(address);
                 }
-                sendSocket.Dispose();
                 connectedToNodeInfo = null;
-                sendSocket = CreateSendingSocket();
             }
 
             public void SendMessage(byte[] message)
@@ -138,13 +132,19 @@ namespace SRint
 
             private ZeroMQ.ZmqSocket CreateSendingSocket()
             {
-                return context.CreateSocket(ZeroMQ.SocketType.PUSH);
+                ZmqSocket socket = context.CreateSocket(ZeroMQ.SocketType.PUSH);
+                SocketMonitor monitor = new SocketMonitor(context, socket);
+                monitor.OnConnected += (ZmqSocket s) => { recvMessagesCollection.TryAdd(new ConnectedCommunicationMetaMessage { socket = s }); };
+                monitor.OnConnectRetried += (ZmqSocket s) => { recvMessagesCollection.TryAdd(new ConnectRetiredCommunicationMetaMessage { socket = s }); };
+                monitor.OnDisconnected += (ZmqSocket s) => { recvMessagesCollection.TryAdd(new DisconnectedCommunicationMetaMessage { socket = s }); };
+                monitor.Start();
+
+                return socket;
             }
 
             private ZeroMQ.ZmqContext context;
             private ZeroMQ.ZmqSocket recvSocket;
             private ZeroMQ.ZmqSocket sendSocket;
-            private ZeroMQ.Monitoring.ZmqMonitor sendingMonitor;
 
             private readonly BlockingCollection<Message> recvMessagesCollection = new BlockingCollection<Message>();
 
