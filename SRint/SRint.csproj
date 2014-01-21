@@ -35,11 +35,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="clrzmq">
-      <HintPath>..\packages\clrzmq.2.2.5\lib\clrzmq.dll</HintPath>
-    </Reference>
-    <Reference Include="clrzmq-ext">
-      <HintPath>..\packages\clrzmq.2.2.5\lib\clrzmq-ext.dll</HintPath>
+    <Reference Include="clrzmq, Version=3.0.0.0, Culture=neutral, PublicKeyToken=ef95cdc29d237b0d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\clrzmq.3.0.0-rc1\lib\net40\clrzmq.dll</HintPath>
     </Reference>
     <Reference Include="protobuf-net">
       <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
@@ -83,6 +81,7 @@
     <Compile Include="SettingsForm.xaml.cs">
       <DependentUpon>SettingsForm.xaml</DependentUpon>
     </Compile>
+    <Compile Include="SocketMonitor.cs" />
     <Compile Include="SRintAPI.cs" />
     <Compile Include="StateSnapshot.cs" />
     <Compile Include="VariablesView.xaml.cs">

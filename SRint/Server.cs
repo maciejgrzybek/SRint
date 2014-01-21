@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Threading;
+using ZeroMQ;
 
 namespace SRint
 {
@@ -15,7 +16,7 @@ namespace SRint
         {
             class ReceivingThread
             {
-                public ReceivingThread(BlockingCollection<byte[]> messagesCollection, ZMQ.Socket socket)
+                public ReceivingThread(BlockingCollection<byte[]> messagesCollection, ZmqSocket socket)
                 {
                     this.socket = socket;
                     this.messagesCollection = messagesCollection;
@@ -27,9 +28,13 @@ namespace SRint
 
                     while (workIndicator)
                     {
-                        var received = socket.Recv(2000); // TODO parametrize timeout
-                        if (received != null && received.Length > 0)
+                        byte[] received = new byte[1024]; // TODO change this fixed size buffer
+                        int result = socket.Receive(received, TimeSpan.FromMilliseconds(2000)); // TODO parametrize timeout
+                        if (result > 0 && received != null && received.Length > 0)
+                        {
+                            Array.Resize(ref received, result);
                             messagesCollection.Add(received);
+                        }
                     }
                 }
 
@@ -38,7 +43,7 @@ namespace SRint
                     workIndicator = false;
                 }
 
-                private ZMQ.Socket socket;
+                private ZmqSocket socket;
                 private BlockingCollection<byte[]> messagesCollection;
                 private volatile bool workIndicator = false;
             }
@@ -47,33 +52,39 @@ namespace SRint
 
             public Server(string address = "tcp://*", int recvPort = 5555, int poolSize = 1)
             {
-                context = new ZMQ.Context(poolSize);
+                context = ZmqContext.Create();
 
-                recvSocket = context.Socket(ZMQ.SocketType.PULL);
+                recvSocket = context.CreateSocket(SocketType.PULL);
                 BindToRecvSocket(address, recvPort);
                 receiver = new ReceivingThread(recvMessagesCollection, recvSocket);
                 receivingThread = new Thread(receiver.StartReading);
 
                 sendSocket = CreateSendingSocket();
+                SocketMonitor monitor = new SocketMonitor(context, sendSocket);
+                monitor.OnConnected += (ZmqSocket socket) => { Logger.Instance.LogNotice("Connected."); };
+                monitor.OnDisconnected += (ZmqSocket socket) => { Logger.Instance.LogNotice("Disconnected."); };
+                monitor.Start();
             }
 
             public void Connect(string address, int port)
             {
-                string addr = "tcp://" + address + ":" + port.ToString();
+                string addr = address + ":" + port.ToString();
                 sendSocket.Connect(addr);
                 connectedToNodeInfo = new ConnectionInfo { address = address, port = port };
             }
 
             public void Disconnect()
             {
-                connectedToNodeInfo = null;
+                string address = "tcp://" + connectedToNodeInfo.Value.address + ":" + connectedToNodeInfo.Value.port;
+                sendSocket.Disconnect(address);
                 sendSocket.Dispose();
+                connectedToNodeInfo = null;
                 sendSocket = CreateSendingSocket();
             }
 
             public void SendMessage(byte[] message)
             {
-                sendSocket.Send(message);
+                sendSocket.Send(message, TimeSpan.FromMilliseconds(3000)); // TODO parametrize timeout
             }
 
             public ConnectionInfo? ConnectedToNodeInfo { get { return connectedToNodeInfo; } }
@@ -122,14 +133,15 @@ namespace SRint
                 recvSocket.Bind(address);
             }
 
-            private ZMQ.Socket CreateSendingSocket()
+            private ZeroMQ.ZmqSocket CreateSendingSocket()
             {
-                return context.Socket(ZMQ.SocketType.PUSH);
+                return context.CreateSocket(ZeroMQ.SocketType.PUSH);
             }
 
-            private ZMQ.Context context;
-            private ZMQ.Socket recvSocket;
-            private ZMQ.Socket sendSocket;
+            private ZeroMQ.ZmqContext context;
+            private ZeroMQ.ZmqSocket recvSocket;
+            private ZeroMQ.ZmqSocket sendSocket;
+            private ZeroMQ.Monitoring.ZmqMonitor sendingMonitor;
 
             private BlockingCollection<byte[]> recvMessagesCollection = new BlockingCollection<byte[]>();
 
