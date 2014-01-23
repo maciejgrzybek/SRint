@@ -17,7 +17,6 @@ namespace SRint
         {
             public string nodeAddress { get; set; }
             public int nodePort { get; set; }
-            public bool isFirstAppendedNode { get; set; }
         }
 
         public class VariableManipulatingCommand : Command

@@ -36,7 +36,6 @@ namespace SRint
         {
             public string address { get; set; }
             public int port { get; set; }
-            public bool isNetworkFounder { get; set; }
             public string nodeAddress { get; set; }
             public int? nodePort { get; set; }
         }
@@ -44,7 +43,6 @@ namespace SRint
         private void AcceptForm()
         {
             settings = new Settings { address = ipAddress.Text, port = Convert.ToInt32(port.Text) };
-            settings.isNetworkFounder = (bool)isFirstNodeInNetwork.IsChecked;
             if (isEnteringNetworkCheckbox.IsChecked == true)
             {
                 settings.nodeAddress = nodeAddress.Text;

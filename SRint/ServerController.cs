@@ -93,11 +93,6 @@ namespace SRint
                 if (m != null)
                     return HandleConnection(m);
             }
-            //{
-            //    var m = msg as Communication.ConnectRetiredCommunicationMetaMessage;
-            //    if (m != null)
-            //        return HandleConnectionRetry(m);
-            //}
             {
                 var m = msg as Communication.DisconnectedCommunicationMetaMessage;
                 if (m != null)
@@ -162,7 +157,7 @@ namespace SRint
                 System.Diagnostics.Debug.Assert(m.state_content.nodes.Count == 1);
 
                 protobuf.Message.NodeDescription node = m.state_content.nodes[0];
-                commandsQueue.Add(new SRintAPI.AppendNodeToNetworkCommand { nodeAddress = node.ip, nodePort = node.port, isFirstAppendedNode = settings.isNetworkFounder }); // entry request will be handler AFTER all other requests enqueued!
+                commandsQueue.Add(new SRintAPI.AppendNodeToNetworkCommand { nodeAddress = node.ip, nodePort = node.port }); // WARNING! entry request will be handled AFTER all other requests enqueued!
                 return !IsTokenCreationNeeded();
             }
             return false;
@@ -220,7 +215,7 @@ namespace SRint
 
         private bool IsTokenCreationNeeded()
         {
-            return (snapshot.message.state_content.nodes.Count == 1 && settings.isNetworkFounder);
+            return (snapshot.message.state_content.nodes.Count == 1);
         }
 
         private void EnsureConnectionToAppropriateNextNode()
@@ -293,7 +288,7 @@ namespace SRint
             // TODO check whether node already exists
             var nodes = snapshot.message.state_content.nodes;
             int myIndex = GetMyIndexInNodeDescriptionList();
-            nodes.Insert(myIndex + 1, new protobuf.Message.NodeDescription { node_id = GetHighestNodeID() + 1, ip = cmd.nodeAddress, port = cmd.nodePort }); // FIXME set appropriate node_id!
+            nodes.Insert(myIndex + 1, new protobuf.Message.NodeDescription { node_id = GetHighestNodeID() + 1, ip = cmd.nodeAddress, port = cmd.nodePort });
         }
 
         private int GetHighestNodeID()
