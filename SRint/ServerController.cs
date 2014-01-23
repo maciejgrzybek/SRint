@@ -24,11 +24,8 @@ namespace SRint
                 { typeof(SRintAPI.AppendNodeToNetworkCommand), AppendNodeToNetwork }
             };
             this.sender = sender;
-            if (settings.isNetworkFounder)
-            {
-                snapshot = new StateSnapshot();
-                snapshot.message.state_content.nodes.Add(new protobuf.Message.NodeDescription { node_id = 1, ip = settings.address, port = settings.port }); // node_id = 1 => network founder
-            }
+            snapshot = new StateSnapshot();
+            snapshot.message.state_content.nodes.Add(new protobuf.Message.NodeDescription { node_id = 1, ip = settings.address, port = settings.port }); // node_id = 1 => network 
         }
 
         public void EnterNetwork()
@@ -66,8 +63,16 @@ namespace SRint
                 IncrementStateID();
             }
 
-            EnsureConnectionToAppropriateNextNode();
-            PropagateToNetwork();
+            TransmitToNetworkIfAppropriate();
+        }
+
+        private void TransmitToNetworkIfAppropriate()
+        {
+            if (snapshot.message.state_content.nodes.Count > 1)
+            {
+                EnsureConnectionToAppropriateNextNode();
+                PropagateToNetwork();
+            }
         }
 
         private void IncrementStateID(int increment = 1)
@@ -142,8 +147,7 @@ namespace SRint
                     snapshot = new StateSnapshot(m);
                     if (state == State.UPDATE_APPEARED)
                         OnSnapshotChange();
-                    EnsureConnectionToAppropriateNextNode();
-                    PropagateToNetwork();
+                    TransmitToNetworkIfAppropriate();
                     return true;
                 }
 
@@ -166,23 +170,31 @@ namespace SRint
 
         private bool HandleConnection(Communication.ConnectedCommunicationMetaMessage msg)
         {
-            Logger.Instance.LogNotice("Connected. Endpoint: " + msg.socket.LastEndpoint);
+            string log = "Connected.";
+            if (msg.socket != null)
+                log += " Endoint: " + msg.socket.LastEndpoint;
+            Logger.Instance.LogNotice(log);
             return true; // no next actions needed
         }
 
         private bool HandleDisconnection(Communication.DisconnectedCommunicationMetaMessage msg)
         {
-            Logger.Instance.LogNotice("Disconnection. Endpoint: " + msg.socket.LastEndpoint);
+            string log = "Disconnected.";
+            if (msg.socket != null)
+                log += " Endoint: " + msg.socket.LastEndpoint;
+            Logger.Instance.LogNotice(log);
             RemoveNextNode();
             IncrementStateID(2);
-            EnsureConnectionToAppropriateNextNode();
-            PropagateToNetwork();
+            TransmitToNetworkIfAppropriate();
             return true;
         }
 
         private bool HandleRetry(Communication.ConnectRetiredCommunicationMetaMessage msg)
         {
-            Logger.Instance.LogNotice("Retry (endpoint = " + msg.socket.LastEndpoint + ") no. " + RetriesOccurred);
+            string log = "Retry no. " + RetriesOccurred;
+            if (msg.socket != null)
+                log += ". Endoint: " + msg.socket.LastEndpoint;
+            Logger.Instance.LogNotice(log);
             ++RetriesOccurred;
 
             if (RetriesOccurred >= RetriesLimit)
