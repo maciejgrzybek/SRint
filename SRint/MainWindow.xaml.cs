@@ -64,6 +64,7 @@ namespace SRint
         private void StartServerButton_Click(object sender, RoutedEventArgs e)
         {
             Logger.Instance.LogNotice("Starting server thread");
+            readyToClose = false;
             poller.Start();
             StartServer_Button.IsEnabled = false;
             StopServer_Button.IsEnabled = true;
@@ -100,13 +101,27 @@ namespace SRint
                 StartServer_Button.IsEnabled = true;
                 StopServer_Button.IsEnabled = false;
                 Logger.Instance.LogNotice("Polling stopped");
+
+                readyToClose = true;
+                if (isTurningOff)
+                    Close();
             });
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            isTurningOff = true;
+            e.Cancel = !readyToClose;
+            StopServerButton_Click(sender, new RoutedEventArgs());
+            server.Disconnect();
         }
 
         private SRintAPI api;
         private Communication.Server server;
         private Communication.ServerPoller poller;
         private BlockingCollection<SRintAPI.Command> commandsQueue;
+        private bool readyToClose = true;
+        private bool isTurningOff = false;
         private readonly Dictionary<string, Page> pages;
     }
 }

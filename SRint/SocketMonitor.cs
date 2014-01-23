@@ -32,8 +32,8 @@ namespace SRint
         public SocketMonitor(ZmqContext context, ZmqSocket observedSocket)
         {
             this.context = context;
-            this.observedSocket = observedSocket;
-            ZeroMQ.Monitoring.MonitorSocketExtensions.Monitor(observedSocket, "inproc://monitor");
+            ObservedSocket = observedSocket;
+            ZeroMQ.Monitoring.MonitorSocketExtensions.Monitor(observedSocket, "inproc://monitor_" + ++monitorID);
             socket = context.CreateSocket(SocketType.PAIR);
 
             events = new Dictionary<ZeroMQ.Monitoring.MonitorEvents, Action>()
@@ -65,25 +65,26 @@ namespace SRint
 
         private void Poll()
         {
-            socket.Connect("inproc://monitor");
+            socket.Connect("inproc://monitor_" + monitorID);
             while (poll)
             {
                 byte[] recv = new byte[1024];
-                int size;
-                socket.Receive(recv, out size);
-                if (size > 6)
-                    continue; // skip event details (like IP address etc.)
+                int size = socket.Receive(recv, TimeSpan.FromMilliseconds(500));
+                if (size > 6 || size == -1)
+                    continue; // skip event details (like IP address etc.) OR timeout/interruption
                 short rcv = BitConverter.ToInt16(recv, 0);
                 var result = (ZeroMQ.Monitoring.MonitorEvents)rcv;
                 events[result]();
             }
         }
 
+        public ZmqSocket ObservedSocket { get; private set; }
         private ZmqContext context;
         private ZmqSocket socket;
-        private ZmqSocket observedSocket;
 
         private volatile bool poll = false;
+
+        private static volatile int monitorID = 0;
 
         private readonly Dictionary<ZeroMQ.Monitoring.MonitorEvents, Action> events;
     }

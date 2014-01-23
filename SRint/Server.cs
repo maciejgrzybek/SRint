@@ -58,12 +58,11 @@ namespace SRint
                 BindToRecvSocket(address, recvPort);
                 receiver = new ReceivingThread(recvMessagesCollection, recvSocket);
                 receivingThread = new Thread(receiver.StartReading);
-
-                sendSocket = CreateSendingSocket();
             }
 
             public void Connect(string address, int port)
             {
+                sendSocket = CreateSendingSocket();
                 string addr = "tcp://" + address + ":" + port.ToString();
                 sendSocket.Connect(addr);
                 connectedToNodeInfo = new ConnectionInfo { address = address, port = port };
@@ -75,6 +74,8 @@ namespace SRint
                 {
                     string address = "tcp://" + connectedToNodeInfo.Value.address + ":" + connectedToNodeInfo.Value.port;
                     sendSocket.Disconnect(address);
+                    sendingSocketMonitor.Stop();
+                    sendSocket.Dispose();
                 }
                 connectedToNodeInfo = null;
             }
@@ -133,17 +134,18 @@ namespace SRint
             private ZeroMQ.ZmqSocket CreateSendingSocket()
             {
                 ZmqSocket socket = context.CreateSocket(ZeroMQ.SocketType.PUSH);
-                SocketMonitor monitor = new SocketMonitor(context, socket);
-                monitor.OnConnected += (ZmqSocket s) => { recvMessagesCollection.TryAdd(new ConnectedCommunicationMetaMessage { socket = s }); };
-                monitor.OnConnectRetried += (ZmqSocket s) => { recvMessagesCollection.TryAdd(new ConnectRetiredCommunicationMetaMessage { socket = s }); };
-                monitor.OnDisconnected += (ZmqSocket s) => { recvMessagesCollection.TryAdd(new DisconnectedCommunicationMetaMessage { socket = s }); };
-                monitor.Start();
+                sendingSocketMonitor = new SocketMonitor(context, socket);
+                sendingSocketMonitor.OnConnected += (ZmqSocket s) => { recvMessagesCollection.TryAdd(new ConnectedCommunicationMetaMessage { socket = s }); };
+                sendingSocketMonitor.OnConnectRetried += (ZmqSocket s) => { recvMessagesCollection.TryAdd(new ConnectRetiredCommunicationMetaMessage { socket = s }); };
+                sendingSocketMonitor.OnDisconnected += (ZmqSocket s) => { recvMessagesCollection.TryAdd(new DisconnectedCommunicationMetaMessage { socket = s }); };
+                sendingSocketMonitor.Start();
 
                 return socket;
             }
 
             private ZeroMQ.ZmqContext context;
             private ZeroMQ.ZmqSocket recvSocket;
+            private SocketMonitor sendingSocketMonitor;
             private ZeroMQ.ZmqSocket sendSocket;
 
             private readonly BlockingCollection<Message> recvMessagesCollection = new BlockingCollection<Message>();
