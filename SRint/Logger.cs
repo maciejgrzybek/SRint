@@ -27,7 +27,7 @@ namespace SRint
             if (OnErrorOccured != null)
             {
                 LoggerEventArgs args = new LoggerEventArgs();
-                args.Message = errorMessage;
+                args.Message = DateTime.Now.ToString("HH:mm:ss tt") + " " + errorMessage;
                 OnErrorOccured(this, args);
             }
         }
@@ -37,7 +37,7 @@ namespace SRint
             if (OnWarningOccured != null)
             {
                 LoggerEventArgs args = new LoggerEventArgs();
-                args.Message = warningMessage;
+                args.Message = DateTime.Now.ToString("HH:mm:ss tt") + " " + warningMessage;
                 OnWarningOccured(this, args);
             }
         }
@@ -47,7 +47,7 @@ namespace SRint
             if (OnNoticeOccured != null)
             {
                 LoggerEventArgs args = new LoggerEventArgs();
-                args.Message = noticeMessage;
+                args.Message = DateTime.Now.ToString("HH:mm:ss tt") + " " + noticeMessage;
                 OnNoticeOccured(this, args);
             }
         }
