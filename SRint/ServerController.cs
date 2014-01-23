@@ -53,18 +53,27 @@ namespace SRint
 
         public void OnIncommingMessage(Communication.Message message) // in server thread (not socket's, nor UI!)
         {
-            bool isActionPerformedAlready = DispatchMessage(message); // TODO real dispatching - entry vs normal vs election
+            bool skipFurtherActions = DispatchMessage(message); // TODO real dispatching - entry vs normal vs election
 
-            if (isActionPerformedAlready)
+            if (skipFurtherActions)
                 return; // no further action in this turn
 
             SRintAPI.Command command = null;
             bool isCommandInQueue = commandsQueue.TryTake(out command, 0);
             if (isCommandInQueue)
+            {
                 commandsReactions[command.GetType()](command);
+                IncrementStateID();
+            }
 
             EnsureConnectionToAppropriateNextNode();
             PropagateToNetwork();
+        }
+
+        private void IncrementStateID(int increment = 1)
+        {
+            snapshot.message.state_content.state_id += increment;
+            LastStateIDGenerated = snapshot.message.state_content.state_id;
         }
 
         private bool DispatchMessage(Communication.Message msg)
@@ -89,9 +98,35 @@ namespace SRint
                 if (m != null)
                     return HandleDisconnection(m);
             }
-            
-            return false;
 
+            {
+                var m = msg as Communication.ConnectRetiredCommunicationMetaMessage;
+                if (m != null)
+                    return HandleRetry(m);
+            }
+
+            return false;
+        }
+
+        private State DistinguishState(protobuf.Message message)
+        {
+            if (message.type == protobuf.Message.MessageType.STATE)
+            {
+                if (snapshot == null || snapshot.message.state_content == null)
+                    return State.INVALID_STATE;
+
+                long stateId = message.state_content.state_id;
+
+                if (stateId > snapshot.message.state_content.state_id)
+                    return State.UPDATE_APPEARED;
+
+                if (stateId == LastStateIDGenerated)
+                    return State.ACK_RECEIVED;
+
+                return State.TOKEN_RECEIVED;
+            }
+
+            return State.INVALID_STATE;
         }
 
         private bool HandleNetworkMessage(Communication.NetworkMessage msg)
@@ -101,8 +136,22 @@ namespace SRint
 
             if (m.type == protobuf.Message.MessageType.STATE)
             {
-                if (snapshot != null && snapshot.message.state_content != null && m.state_content.state_id <= snapshot.message.state_content.state_id)
-                    return true; // skip snapshot with earlier state than last known by me
+                var state = DistinguishState(m);
+                if (state == State.INVALID_STATE || state == State.UPDATE_APPEARED || state == State.ACK_RECEIVED)
+                {
+                    snapshot = new StateSnapshot(m);
+                    if (state == State.UPDATE_APPEARED)
+                        OnSnapshotChange();
+                    EnsureConnectionToAppropriateNextNode();
+                    PropagateToNetwork();
+                    return true;
+                }
+
+                if (state == State.TOKEN_RECEIVED)
+                {
+                    IncrementStateID();
+                    return false;
+                }
             }
             if (m.type == protobuf.Message.MessageType.ENTRY_REQUEST)
             {
@@ -112,8 +161,6 @@ namespace SRint
                 commandsQueue.Add(new SRintAPI.AppendNodeToNetworkCommand { nodeAddress = node.ip, nodePort = node.port, isFirstAppendedNode = settings.isNetworkFounder }); // entry request will be handler AFTER all other requests enqueued!
                 return !IsTokenCreationNeeded();
             }
-            snapshot = new StateSnapshot(m);
-            OnSnapshotChange();
             return false;
         }
 
@@ -127,8 +174,22 @@ namespace SRint
         {
             Logger.Instance.LogNotice("Disconnection.");
             RemoveNextNode();
+            IncrementStateID(2);
             EnsureConnectionToAppropriateNextNode();
             PropagateToNetwork();
+            return true;
+        }
+
+        private bool HandleRetry(Communication.ConnectRetiredCommunicationMetaMessage msg)
+        {
+            Logger.Instance.LogNotice("Retry no. " + RetriesOccurred);
+            ++RetriesOccurred;
+
+            if (RetriesOccurred >= RetriesLimit)
+            {
+                sender.Disconnect();
+                //return HandleDisconnection(new Communication.DisconnectedCommunicationMetaMessage());
+            }
             return true;
         }
 
@@ -175,8 +236,6 @@ namespace SRint
 
         private void PropagateToNetwork()
         {
-            if (snapshot.message.type == protobuf.Message.MessageType.STATE)
-                snapshot.message.state_content.state_id += 1;
             var toSend = Serialization.MessageSerializer.Serialize(snapshot.message);
             sender.SendMessage(toSend);
         }
@@ -193,23 +252,23 @@ namespace SRint
         {
             SRintAPI.VariableManipulatingCommand cmd = command as SRintAPI.VariableManipulatingCommand;
             protobuf.Message.Variable variable = new protobuf.Message.Variable { name = cmd.name, value = 0 };
-            snapshot.variables.Add(variable);
+            snapshot.message.state_content.variables.Add(variable);
             SetMeAsOwner(variable);
         }
 
         private void DeleteVariable(SRintAPI.Command command)
         {
             SRintAPI.VariableManipulatingCommand cmd = command as SRintAPI.VariableManipulatingCommand;
-            var v = snapshot.variables.Find((variable) => variable.name == cmd.name);
+            var v = snapshot.message.state_content.variables.Find((variable) => variable.name == cmd.name);
             v.owners.RemoveAll((owner) => { return (owner.ip == settings.address && owner.port == settings.port); }); // TODO take under consideration node_id
             if (v.owners.Count == 0)
-                snapshot.variables.Remove(v);
+                snapshot.message.state_content.variables.Remove(v);
         }
 
         private void SetValue(SRintAPI.Command command)
         {
             SRintAPI.VariableManipulatingCommand cmd = command as SRintAPI.VariableManipulatingCommand;
-            var v = snapshot.variables.Find((variable) => variable.name == cmd.name);
+            var v = snapshot.message.state_content.variables.Find((variable) => variable.name == cmd.name);
             var c = command as SRintAPI.SetValueCommand;
             v.value = c.value;
             SetMeAsOwner(v);
@@ -252,10 +311,20 @@ namespace SRint
                 variable.owners.Add(new protobuf.Message.NodeDescription { ip = settings.address, port = settings.port });
         }
 
+        private enum State {
+                             TOKEN_RECEIVED, // when state_id appeared the same as last known
+                             UPDATE_APPEARED, // state_id greater than last known
+                             ACK_RECEIVED, // the same state_id arrived as I recently sent on my own change
+                             INVALID_STATE // should never appear
+                           };
+
         private SettingsForm.Settings settings;
         private BlockingCollection<SRintAPI.Command> commandsQueue;
         private readonly Dictionary<Type, Action<SRintAPI.Command>> commandsReactions;
         private Communication.MessageSender sender;
         private StateSnapshot snapshot = null;
+        private Int64 LastStateIDGenerated = -1;
+        private int RetriesOccurred = 0;
+        private int RetriesLimit = 3;
     }
 }

@@ -48,7 +48,7 @@ namespace SRint
 
         public void controller_OnSnapshotChanged(object sender, StateSnapshot e) // in back-end thread
         {
-            e.variables.ForEach(variable =>
+            e.message.state_content.variables.ForEach(variable =>
             {
                 protobuf.Message.Variable foundVariable = getVariable(variable.name);
                 if (foundVariable != null && foundVariable.value != variable.value)
@@ -85,7 +85,7 @@ namespace SRint
         }
         public List<protobuf.Message.Variable> getVariables()
         {
-            return lastSnapshot.variables;
+            return lastSnapshot.message.state_content.variables;
         }
 
         public List<protobuf.Message.NodeDescription> Infrastructure { get { return lastSnapshot.message.state_content.nodes; } }
@@ -102,7 +102,7 @@ namespace SRint
 
         private protobuf.Message.Variable getVariable(string name)
         {
-            protobuf.Message.Variable foundVariable = lastSnapshot.variables.Find(v => v.name == name);
+            protobuf.Message.Variable foundVariable = lastSnapshot.message.state_content.variables.Find(v => v.name == name);
             if (foundVariable == null || foundVariable.name == null)
                 return null;
             return foundVariable;
