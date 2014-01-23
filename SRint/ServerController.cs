@@ -187,8 +187,9 @@ namespace SRint
 
             if (RetriesOccurred >= RetriesLimit)
             {
+                RetriesOccurred = 0;
                 sender.Disconnect();
-                //return HandleDisconnection(new Communication.DisconnectedCommunicationMetaMessage());
+                return HandleDisconnection(new Communication.DisconnectedCommunicationMetaMessage());
             }
             return true;
         }

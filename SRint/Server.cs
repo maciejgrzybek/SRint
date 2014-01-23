@@ -75,7 +75,7 @@ namespace SRint
                     string address = "tcp://" + connectedToNodeInfo.Value.address + ":" + connectedToNodeInfo.Value.port;
                     sendSocket.Disconnect(address);
                     sendingSocketMonitor.Stop();
-                    sendSocket.Dispose();
+                    //sendSocket.Dispose();
                 }
                 connectedToNodeInfo = null;
             }
