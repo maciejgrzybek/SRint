@@ -166,13 +166,13 @@ namespace SRint
 
         private bool HandleConnection(Communication.ConnectedCommunicationMetaMessage msg)
         {
-            Logger.Instance.LogNotice("Connected.");
+            Logger.Instance.LogNotice("Connected. Endpoint: " + msg.socket.LastEndpoint);
             return true; // no next actions needed
         }
 
         private bool HandleDisconnection(Communication.DisconnectedCommunicationMetaMessage msg)
         {
-            Logger.Instance.LogNotice("Disconnection.");
+            Logger.Instance.LogNotice("Disconnection. Endpoint: " + msg.socket.LastEndpoint);
             RemoveNextNode();
             IncrementStateID(2);
             EnsureConnectionToAppropriateNextNode();
@@ -182,7 +182,7 @@ namespace SRint
 
         private bool HandleRetry(Communication.ConnectRetiredCommunicationMetaMessage msg)
         {
-            Logger.Instance.LogNotice("Retry no. " + RetriesOccurred);
+            Logger.Instance.LogNotice("Retry (endpoint = " + msg.socket.LastEndpoint + ") no. " + RetriesOccurred);
             ++RetriesOccurred;
 
             if (RetriesOccurred >= RetriesLimit)
