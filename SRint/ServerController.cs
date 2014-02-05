@@ -85,7 +85,7 @@ namespace SRint
         {
             {
                 var m = msg as Communication.NetworkMessage;
-                if (m != null) // change this to more sophisitcated dispatching
+                if (m != null) // change this to more sophisticated dispatching
                     return HandleNetworkMessage(m);
             }
             {
@@ -98,7 +98,6 @@ namespace SRint
                 if (m != null)
                     return HandleDisconnection(m);
             }
-
             {
                 var m = msg as Communication.ConnectRetiredCommunicationMetaMessage;
                 if (m != null)
@@ -139,6 +138,15 @@ namespace SRint
                 var state = DistinguishState(m);
                 if (state == State.INVALID_STATE || state == State.UPDATE_APPEARED || state == State.ACK_RECEIVED)
                 {
+                    if (state == State.ACK_RECEIVED)
+                    {
+                        int newNodeIDsSum = 0;
+                        m.state_content.nodes.ForEach((n) => newNodeIDsSum += n.node_id);
+                        int currentNodeIDsSum = 0;
+                        snapshot.message.state_content.nodes.ForEach((n) => currentNodeIDsSum += n.node_id);
+                        if (newNodeIDsSum < currentNodeIDsSum)
+                            return true; // do nothing - skip message
+                    }
                     snapshot = new StateSnapshot(m);
                     if (state == State.UPDATE_APPEARED)
                         OnSnapshotChange();
